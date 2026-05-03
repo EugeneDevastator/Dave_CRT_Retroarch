@@ -12,9 +12,9 @@ layout(std140, set = 0, binding = 0) uniform UBO { mat4 MVP; } global;
 #define HBLEED_BASE     0.35
 #define VBLEED_BASE     0.45
 #define BLEED_LUMA_GAIN 0.35
-#define HMASK_MULT      0.9
-#define VMASK_MULT      0.1
-#define TJUNC_MULT      0.6
+#define HMASK_MULT      0.7
+#define VMASK_MULT      0.9
+#define TJUNC_MULT      0.9
 
 #pragma stage vertex
 layout(location = 0) in  vec4 Position;
@@ -38,8 +38,18 @@ void main()
     // integer cell dimensions in output pixels
     ivec2 cellSize = ivec2(round(params.OutputSize.xy * params.SourceSize.zw));
 
-    // output pixel coordinate (integer)
-    ivec2 outPx = ivec2(floor(vTexCoord * params.OutputSize.xy));
+    // total grid size and centering offset
+    ivec2 gridSize = cellSize * ivec2(params.SourceSize.xy);
+    ivec2 offset   = (ivec2(params.OutputSize.xy) - gridSize) / 2;
+
+    // output pixel coordinate shifted to grid space
+    ivec2 outPx = ivec2(floor(vTexCoord * params.OutputSize.xy)) - offset;
+
+    // outside grid — black border
+    if (outPx.x < 0 || outPx.y < 0 || outPx.x >= gridSize.x || outPx.y >= gridSize.y) {
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
+    }
 
     // which source pixel cell are we in
     ivec2 srcPixel = outPx / cellSize;
@@ -49,8 +59,8 @@ void main()
 
     float colIndex = float(srcPixel.x);
 
-    int staggerI       = int(mod(colIndex, 2.0) * float(cellSize.y) * 0.5);
-    int cellPosYStag   = (cellPos.y + staggerI) % cellSize.y;
+    int staggerI     = int(mod(colIndex, 2.0) * float(cellSize.y) * 0.5);
+    int cellPosYStag = (cellPos.y + staggerI) % cellSize.y;
 
     float neighborYDir = ((cellPos.y + staggerI) >= cellSize.y) ? 1.0 : -1.0;
 
@@ -60,8 +70,8 @@ void main()
     vec3 right = texture(Source, texCenter + vec2( o.x, 0.0)).rgb;
     vec3 above = texture(Source, texCenter + vec2(0.0, neighborYDir * o.y)).rgb;
 
-    bool isVBleed = (cellPosYStag == 0);
-    bool isHBleed = (cellPos.x == cellSize.x - 1);
+    bool isHBleed = (cellPosYStag == 0);
+    bool isVBleed = (cellPos.x == cellSize.x - 1);
 
     float luma       = dot(C, vec3(0.299, 0.587, 0.114));
     float bleedBoost = 1.0 + luma * BLEED_LUMA_GAIN;

@@ -8,7 +8,8 @@ layout(push_constant) uniform Push {
 
 layout(std140, set = 0, binding = 0) uniform UBO { mat4 MVP; } global;
 
-#define DECAY 0.65
+#define DECAY          0.75
+#define DECAY_EXPONENT 1.3
 
 #pragma stage vertex
 layout(location = 0) in  vec4 Position;
@@ -29,5 +30,6 @@ layout(set = 0, binding = 3) uniform sampler2D PassFeedback0;
 void main() {
     vec3 current = texture(Source, vTexCoord).rgb;
     vec3 prev    = texture(PassFeedback0, vTexCoord).rgb;
-    FragColor    = vec4(max(prev * DECAY, current), 1.0);
+    vec3 decayed = pow(prev * DECAY, vec3(DECAY_EXPONENT));
+    FragColor    = vec4(max(decayed, current), 1.0);
 }
