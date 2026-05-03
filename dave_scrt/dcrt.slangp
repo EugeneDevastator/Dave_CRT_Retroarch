@@ -1,0 +1,14 @@
+shaders = 2
+
+shader0 = crt_accum.slang
+alias0 = CRTAccum
+filter_linear0 = false
+scale_type0 = source
+scale_x0 = 6.0
+scale_y0 = 5.0
+float_framebuffer0 = true
+feedback_pass = 0
+
+shader1 = crt_display.slang
+filter_linear1 = true
+scale_type1 = viewport
