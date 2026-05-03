@@ -13,7 +13,7 @@ layout(std140, set = 0, binding = 0) uniform UBO { mat4 MVP; } global;
 #define VBLEED_BASE     0.45
 #define BLEED_LUMA_GAIN 0.35
 #define HMASK_MULT      0.9
-#define VMASK_MULT      0.7
+#define VMASK_MULT      0.1
 #define TJUNC_MULT      0.6
 
 #pragma stage vertex
@@ -33,37 +33,35 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-    vec2 o        = params.SourceSize.zw;
+    vec2 o = params.SourceSize.zw;
 
-    // cell size in output pixels derived from scale ratios
-    vec2 cellSize = params.OutputSize.xy * params.SourceSize.zw;
+    // integer cell dimensions in output pixels
+    ivec2 cellSize = ivec2(round(params.OutputSize.xy * params.SourceSize.zw));
 
-    // position in output pixels
-    vec2 outPos   = vTexCoord * params.OutputSize.xy;
+    // output pixel coordinate (integer)
+    ivec2 outPx = ivec2(floor(vTexCoord * params.OutputSize.xy));
 
-    // which source pixel we're in
-    vec2 srcPixel = floor(outPos / cellSize);
+    // which source pixel cell are we in
+    ivec2 srcPixel = outPx / cellSize;
 
-    // position within cell, in output pixels
-    vec2 cellPos  = fract(outPos / cellSize) * cellSize;
+    // local position within cell
+    ivec2 cellPos = outPx - srcPixel * cellSize;
 
-    float colIndex = srcPixel.x;
+    float colIndex = float(srcPixel.x);
 
-    // vertical stagger (same as before, in cell-pixel units)
-    float stagger      = mod(colIndex, 2.0) * (cellSize.y * 0.5);
-    float cellPosYStag = mod(cellPos.y + stagger, cellSize.y);
+    int staggerI       = int(mod(colIndex, 2.0) * float(cellSize.y) * 0.5);
+    int cellPosYStag   = (cellPos.y + staggerI) % cellSize.y;
 
-    float neighborYDir = ((cellPos.y + stagger) >= cellSize.y) ? 1.0 : -1.0;
+    float neighborYDir = ((cellPos.y + staggerI) >= cellSize.y) ? 1.0 : -1.0;
 
-    vec2 texCenter = (srcPixel + 0.5) * o;
+    vec2 texCenter = (vec2(srcPixel) + 0.5) * o;
 
     vec3 C     = texture(Source, texCenter).rgb;
     vec3 right = texture(Source, texCenter + vec2( o.x, 0.0)).rgb;
     vec3 above = texture(Source, texCenter + vec2(0.0, neighborYDir * o.y)).rgb;
 
-    // 1 output pixel thick masks
-    bool isVBleed = (cellPosYStag < 1.0);
-    bool isHBleed = (cellPos.x >= (cellSize.x - 1.0) && cellPos.x < cellSize.x);
+    bool isVBleed = (cellPosYStag == 0);
+    bool isHBleed = (cellPos.x == cellSize.x - 1);
 
     float luma       = dot(C, vec3(0.299, 0.587, 0.114));
     float bleedBoost = 1.0 + luma * BLEED_LUMA_GAIN;
