@@ -10,3 +10,14 @@ feedback_pass = 0
 shader1 = crt_display.slang
 filter_linear1 = true
 scale_type1 = viewport
+
+parameters = "DECAY;DECAY_EXPONENT;CORE_GAIN;HBLEED_MULT;VBLEED_MULT;TJUNC_MULT;CELL_W;CELL_H;CELL_MID"
+DECAY = 0.70
+DECAY_EXPONENT = 1.2
+CORE_GAIN = 1.1
+HBLEED_MULT = 0.40
+VBLEED_MULT = 0.48
+TJUNC_MULT = 0.3
+CELL_W = 6.0
+CELL_H = 5.0
+CELL_MID = 3.0
