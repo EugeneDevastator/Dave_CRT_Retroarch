@@ -7,5 +7,4 @@ Use slang version it is much better
 
 get yer retro xpirience today!
 
-!(image.png)[image.png]
-![image.png)(image.png)
+![](image.png)
