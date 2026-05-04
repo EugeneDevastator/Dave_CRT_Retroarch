@@ -8,8 +8,8 @@ layout(push_constant) uniform Push {
 
 layout(std140, set = 0, binding = 0) uniform UBO { mat4 MVP; } global;
 
-#define DECAY          0.75
-#define DECAY_EXPONENT 1.3
+#define DECAY          0.70
+#define DECAY_EXPONENT 1.4
 
 #pragma stage vertex
 layout(location = 0) in  vec4 Position;

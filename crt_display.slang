@@ -8,10 +8,10 @@ layout(push_constant) uniform Push {
 
 layout(std140, set = 0, binding = 0) uniform UBO { mat4 MVP; } global;
 
-#define CORE_GAIN    1.0
-#define HBLEED_MULT  0.35
-#define VBLEED_MULT  0.44
-#define TJUNC_MULT   0.3
+#define CORE_GAIN       1.1
+#define HBLEED_BASE     0.35
+#define BLEED_LUMA_GAIN 0.35
+#define HMASK_MULT      0.7
 
 #pragma stage vertex
 layout(location = 0) in  vec4 Position;
@@ -30,8 +30,8 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-    const int CELL_W = 6;
-    const int CELL_H = 6;
+    const int CELL_W = 4;
+    const int CELL_H = 4;
 
     vec2 o = params.SourceSize.zw;
 
@@ -53,36 +53,33 @@ void main()
     bool isVEdge      = cellPos.x == (CELL_W - 1);
 
     vec2 tc    = (vec2(srcPixel) + 0.5) * o;
-    vec3 own   = texture(Source, tc).rgb  * CORE_GAIN;
-    vec3 right = texture(Source, tc + vec2(o.x,  0.0)).rgb  * CORE_GAIN;
-    vec3 above = texture(Source, tc + vec2(0.0, -o.y)).rgb  * CORE_GAIN;
+    vec3 own   = texture(Source, tc).rgb;
+    vec3 right = texture(Source, tc + vec2(o.x,  0.0)).rgb;
+    vec3 above = texture(Source, tc + vec2(0.0, -o.y)).rgb;
+    vec3 below = texture(Source, tc + vec2(0.0,  o.y)).rgb;
+
+    float luma       = dot(own, vec3(0.299, 0.587, 0.114));
+    float bleedBoost = 1.0 + luma * BLEED_LUMA_GAIN;
 
     vec3 color;
-	bool usejunct = isStaggerCol ? isMidLine : isUpperLine;
-	if (isVEdge && usejunct){        // JUNCTION1
-		  if(isStaggerCol)
-			color = (own + right) * TJUNC_MULT;
-		  else
-			color = (own + right) * TJUNC_MULT;
-	}
-	else 
+
     if (isVEdge) {
-        color = (own + right) * VBLEED_MULT;
+        color = (own + right) * (HBLEED_BASE * bleedBoost) * HMASK_MULT;
     }
     else if (isUpperLine) {
         if (isStaggerCol)
-            color = (above + own) * 0.5;          // stagger: plain average, no bleed
+            color = (above + own) * 0.5;
         else
-            color = (own + above) * HBLEED_MULT;  // normal: hbleed
+            color = (own + above) * (HBLEED_BASE * bleedBoost);
     }
     else if (isMidLine) {
         if (isStaggerCol)
-            color = own * HBLEED_MULT *2;              // t-junction bleed
+            color = own * (HBLEED_BASE * bleedBoost);
         else
             color = own;
     }
     else {
-        color = own;
+        color = own * CORE_GAIN;
     }
 
     FragColor = vec4(color, 1.0);
