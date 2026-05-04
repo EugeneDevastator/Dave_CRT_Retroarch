@@ -30,7 +30,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-    const int CELL_W = 6;
+    const float CELL_W = 6.3;
     const int CELL_H = 6;
 
     vec2 o = params.SourceSize.zw;
